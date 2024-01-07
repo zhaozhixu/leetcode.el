@@ -153,6 +153,16 @@ The object with following attributes:
 :problems List[leetcode--problems]"
   num tag problems)
 
+(defcustom leetcode-solving-layout 'default
+  "Layout used for solving problem.
+`default' using the default layout.
+`code-right' is similar with the default layout but code in the right buffer.
+`tian' using a slightly modified layout which is 2 by 2 grids."
+  :type '(choice (const :tag "Default" default)
+                 (const :tag "Code Right" code-right)
+                 (const :tag "Tian 2x2" tian))
+  :group 'leetcode)
+
 (defvar leetcode--user (make-leetcode-user)
   "A User object.")
 
@@ -875,8 +885,8 @@ LeetCode require slug-title as the request parameters."
               (leetcode--warn "LeetCode try timeout.")))
           (leetcode--loading-mode -1))))))
 
-(defun leetcode--solving-window-layout ()
-  "Specify layout for solving problem.
+(defun leetcode--solving-window-default-layout ()
+  "Default layout for solving problem.
 +---------------+----------------+
 |               |                |
 |               |     Detail     |
@@ -888,7 +898,6 @@ LeetCode require slug-title as the request parameters."
 |               |Submit/Testcases|
 |               |    Result      |
 +---------------+----------------+"
-  (delete-other-windows)
   (setq leetcode--description-window (split-window-horizontally))
   (other-window 1)
   (setq leetcode--testcase-window (split-window-below))
@@ -897,49 +906,157 @@ LeetCode require slug-title as the request parameters."
   (other-window -1)
   (other-window -1))
 
+(defun leetcode--solving-window-code-right-layout ()
+  "Code Right layout for solving problem.
++----------------+----------------+
+|                |                |
+|    Detail      |                |
+|                |                |
+|----------------+                |
+|   Customize    |      Code      |
+|   Testcases    |                |
+|----------------+                |
+|Submit/Testcases|                |
+|    Result      |                |
++----------------+----------------+"
+  (setq leetcode--description-window (split-window-horizontally))
+  (setq leetcode--testcase-window (split-window-below))
+  (other-window 1)
+  (setq leetcode--result-window (split-window-below))
+  (other-window -1)
+  (other-window -1))
+
+(defun leetcode--solving-window-tian-layout ()
+  "Tian 2x2 layout for solving problem.
++---------------+----------------+
+|               |                |
+|               |                |
+|     Code      |   Description  |
+|               |                |
+|               |                |
++---------------+----------------+
+|   Customize   |Submit/Testcases|
+|   Testcases   |    Result      |
++---------------+----------------+"
+  (split-window-horizontally)
+  (split-window-below)
+  (other-window 1)
+  (split-window-below)
+  (delete-window)
+  (other-window 1)
+  (other-window 1)
+  (split-window-below)
+  (other-window 1)
+  (split-window-below)
+  (delete-window)
+  (other-window -1)
+  (other-window -1))
+
+(defun leetcode--solving-window-layout ()
+  "Specify layout for solving problem"
+  (delete-other-windows)
+  (cond ((eq leetcode-solving-layout 'default) (leetcode--solving-window-default-layout))
+        ((eq leetcode-solving-layout 'code-right) (leetcode--solving-window-code-right-layout))
+        ((eq leetcode-solving-layout 'tian) (leetcode--solving-window-tian-layout))
+        )
+  )
+
 (defun leetcode--display-result (buffer &optional alist)
   "Display function for LeetCode result.
 BUFFER is used to show LeetCode result. ALIST is a combined alist
 specified in `display-buffer-alist'."
-  (let ((window (window-next-sibling
-                 (window-next-sibling
-                  (window-top-child
-                   (window-next-sibling
-                    (window-left-child
-                     (frame-root-window))))))))
-    (set-window-buffer window buffer)
-    window))
+  (cond ((eq leetcode-solving-layout 'default) (let ((window (window-next-sibling
+                                                                (window-next-sibling
+                                                                  (window-top-child
+                                                                    (window-next-sibling
+                                                                      (window-left-child
+                                                                        (frame-root-window))))))))
+                                                    (set-window-buffer window buffer)
+                                                    window))
+        ((eq leetcode-solving-layout 'code-right) (let ((window (window-next-sibling
+                                                                 (window-top-child
+                                                                  (window-next-sibling
+                                                                   (window-top-child
+                                                                    (window-left-child
+                                                                     (frame-root-window))))))))
+                                                    (set-window-buffer window buffer)
+                                                    window))
+        ((eq leetcode-solving-layout 'tian) (let ((window (window-next-sibling
+                                                            (window-top-child
+                                                              (window-next-sibling
+                                                                (window-left-child
+                                                                  (frame-root-window)))))))
+                                                (set-window-buffer window buffer)
+                                                window))
+      ))
 
 (defun leetcode--display-testcase (buffer &optional alist)
   "Display function for LeetCode testcase.
 BUFFER is used to show LeetCode testcase. ALIST is a combined
 alist specified in `display-buffer-alist'."
-  (let ((window (window-next-sibling
-                 (window-top-child
-                  (window-next-sibling
-                   (window-left-child
-                    (frame-root-window)))))))
-    (set-window-buffer window buffer)
-    window))
+  (cond ((eq leetcode-solving-layout 'default) (let ((window  (window-next-sibling
+                                                                  (window-top-child
+                                                                    (window-next-sibling
+                                                                      (window-left-child
+                                                                        (frame-root-window)))))))
+                                                    (set-window-buffer window buffer)
+                                                    window))
+        ((eq leetcode-solving-layout 'code-right) (let ((window(window-top-child
+                                                                (window-next-sibling
+                                                                 (window-top-child
+                                                                  (window-left-child
+                                                                   (frame-root-window)))))))
+                                                    (set-window-buffer window buffer)
+                                                    window))
+          ((eq leetcode-solving-layout 'tian) (let ((window (window-next-sibling
+                                                              (window-top-child
+                                                                (window-left-child
+                                                                  (frame-root-window))))))
+                                                  (set-window-buffer window buffer)
+                                                  window))
+        ))
 
 (defun leetcode--display-detail (buffer &optional alist)
   "Display function for LeetCode detail.
 BUFFER is used to show LeetCode detail. ALIST is a combined alist
 specified in `display-buffer-alist'."
-  (let ((window (window-top-child
-                 (window-next-sibling
-                  (window-left-child
-                   (frame-root-window))))))
-    (set-window-buffer window buffer)
-    window))
+  (cond ((eq leetcode-solving-layout 'default) (let ((window (window-top-child
+                                                              (window-next-sibling
+                                                               (window-left-child
+                                                                (frame-root-window))))))
+                                                 (set-window-buffer window buffer)
+                                                 window))
+        ((eq leetcode-solving-layout 'code-right) (let ((window (window-top-child
+                                                                 (window-left-child
+                                                                 (frame-root-window)))))
+                                                    (set-window-buffer window buffer)
+                                                    window))
+        ((eq leetcode-solving-layout 'tian) (let ((window (window-top-child
+                                                           (window-next-sibling
+                                                            (window-left-child
+                                                             (frame-root-window))))))
+                                              (set-window-buffer window buffer)
+                                              window))
+        ))
 
 (defun leetcode--display-code (buffer &optional alist)
   "Display function for LeetCode code.
 BUFFER is the one to show LeetCode code. ALIST is a combined
 alist specified in `display-buffer-alist'."
-  (let ((window (window-left-child (frame-root-window))))
-    (set-window-buffer window buffer)
-    window))
+  (cond ((eq leetcode-solving-layout 'default) (let ((window (window-left-child (frame-root-window))))
+                                                 (set-window-buffer window buffer)
+                                                 window))
+        ((eq leetcode-solving-layout 'code-right) (let ((window (window-next-sibling
+                                                                 (window-left-child
+                                                                  (frame-root-window)))))
+                                                    (set-window-buffer window buffer)
+                                                    window))
+        ((eq leetcode-solving-layout 'tian) (let ((window (window-top-child
+                                                           (window-left-child
+                                                            (frame-root-window)))))
+                                              (set-window-buffer window buffer)
+                                              window))
+        ))
 
 (defun leetcode--show-submission-result (problem-id submission-detail)
   "Show error info in `leetcode--result-buffer-name' based on status code.
